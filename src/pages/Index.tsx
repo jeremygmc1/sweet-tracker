@@ -1,13 +1,172 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { 
+  Activity, 
+  Clock, 
+  Calendar, 
+  ArrowDown, 
+  ArrowUp, 
+  HeartPulse,
+  Laptop,
+  Bluetooth
+} from 'lucide-react';
+import GlucoseChart from '@/components/GlucoseChart';
+import GlucoseCard from '@/components/GlucoseCard';
+import StatsCard from '@/components/StatsCard';
+import { Link } from 'react-router-dom';
+import { 
+  generateDummyData, 
+  calculateStats,
+  userData,
+  GlucoseReading
+} from '@/utils/dummyData';
+import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+  const [data, setData] = useState<GlucoseReading[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    // Simulate data loading
+    setIsLoading(true);
+    setTimeout(() => {
+      const dummyData = generateDummyData(24);
+      setData(dummyData);
+      setIsLoading(false);
+    }, 800);
+  }, []);
+  
+  // Calculate stats from the data
+  const stats = data.length > 0 ? calculateStats(data) : null;
+  
+  // Get the latest and previous readings
+  const latestReading = data.length > 0 ? data[data.length - 1] : null;
+  const previousReading = data.length > 1 ? data[data.length - 2] : null;
+
+  // Loading skeleton
+  if (isLoading) {
+    return (
+      <div className="app-container">
+        <div className="animate-pulse space-y-6">
+          <div className="h-14 bg-gray-200 rounded-xl w-2/3 mb-6"></div>
+          <div className="h-56 bg-gray-200 rounded-xl"></div>
+          <div className="h-40 bg-gray-200 rounded-xl"></div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="h-32 bg-gray-200 rounded-xl"></div>
+            <div className="h-32 bg-gray-200 rounded-xl"></div>
+          </div>
+        </div>
       </div>
-    </div>
+    );
+  }
+  
+  return (
+    <motion.div 
+      className="app-container"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex justify-between items-center mb-6"
+      >
+        <div>
+          <h1 className="heading-lg mb-1">Hello, {userData.name}</h1>
+          <p className="text-sm text-muted-foreground">
+            {format(new Date(), 'EEEE, MMMM d')}
+          </p>
+        </div>
+        <div className="flex items-center">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mr-3"
+          >
+            <Bluetooth className="h-5 w-5 text-primary" />
+          </motion.div>
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"
+          >
+            <Laptop className="h-5 w-5 text-primary" />
+          </motion.div>
+        </div>
+      </motion.div>
+      
+      {latestReading && previousReading && (
+        <GlucoseCard 
+          latestReading={latestReading} 
+          previousReading={previousReading} 
+        />
+      )}
+      
+      <div className="mt-6">
+        {data.length > 0 && <GlucoseChart data={data} />}
+      </div>
+      
+      {stats && (
+        <div className="mt-6 grid grid-cols-2 gap-6">
+          <StatsCard 
+            title="Average" 
+            value={stats.average}
+            unit="mg/dL"
+            icon={<Activity className="h-5 w-5" />}
+            delay={0.1}
+            color="bg-violet-50 text-violet-600"
+          />
+          
+          <StatsCard 
+            title="Time in Range" 
+            value={stats.timeInRange}
+            unit="%"
+            icon={<Clock className="h-5 w-5" />}
+            delay={0.2}
+            color="bg-emerald-50 text-emerald-600"
+          />
+          
+          <StatsCard 
+            title="Lowest" 
+            value={stats.lowest}
+            unit="mg/dL"
+            icon={<ArrowDown className="h-5 w-5" />}
+            delay={0.3}
+            color="bg-blue-50 text-blue-600"
+          />
+          
+          <StatsCard 
+            title="Highest" 
+            value={stats.highest}
+            unit="mg/dL"
+            icon={<ArrowUp className="h-5 w-5" />}
+            delay={0.4}
+            color="bg-amber-50 text-amber-600"
+          />
+        </div>
+      )}
+      
+      <motion.div 
+        className="mt-10 mb-4 text-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.5 }}
+      >
+        <Link to="/log">
+          <Button 
+            variant="default" 
+            className="w-full max-w-xs mx-auto shadow-lg"
+          >
+            Add New Log Entry
+          </Button>
+        </Link>
+      </motion.div>
+    </motion.div>
   );
 };
 
