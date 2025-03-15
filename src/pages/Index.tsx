@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Activity, 
@@ -7,43 +6,59 @@ import {
   Calendar, 
   ArrowDown, 
   ArrowUp, 
-  HeartPulse,
-  Laptop,
-  Bluetooth
+  Bluetooth,
+  Laptop
 } from 'lucide-react';
 import GlucoseChart from '@/components/GlucoseChart';
 import GlucoseCard from '@/components/GlucoseCard';
 import StatsCard from '@/components/StatsCard';
 import { Link } from 'react-router-dom';
 import { 
-  generateDummyData, 
+  GlucoseReading,
+  getGlucoseReadings,
   calculateStats,
-  userData,
-  GlucoseReading
-} from '@/utils/dummyData';
+  getUserProfile
+} from '@/services/api';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
 
 const Index = () => {
-  const [data, setData] = useState<GlucoseReading[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Use React Query to fetch and cache data
+  const { 
+    data: userData = { name: "Guest" },
+    isLoading: isLoadingUser 
+  } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: getUserProfile,
+    // Handle errors gracefully
+    onError: () => {
+      // Fallback to default user data if API call fails
+      return { name: "Guest" };
+    }
+  });
   
-  useEffect(() => {
-    // Simulate data loading
-    setIsLoading(true);
-    setTimeout(() => {
-      const dummyData = generateDummyData(24);
-      setData(dummyData);
-      setIsLoading(false);
-    }, 800);
-  }, []);
+  // Fetch glucose readings for the past 24 hours
+  const { 
+    data: glucoseData = [],
+    isLoading: isLoadingGlucose,
+    error: glucoseError
+  } = useQuery({
+    queryKey: ['glucoseReadings', 1], // 1 day of data
+    queryFn: () => getGlucoseReadings(1),
+    // Refresh data periodically (every 5 minutes)
+    refetchInterval: 5 * 60 * 1000
+  });
   
-  // Calculate stats from the data
-  const stats = data.length > 0 ? calculateStats(data) : null;
+  // Calculate stats based on the glucose data
+  const stats = glucoseData.length > 0 ? calculateStats(glucoseData) : null;
   
   // Get the latest and previous readings
-  const latestReading = data.length > 0 ? data[data.length - 1] : null;
-  const previousReading = data.length > 1 ? data[data.length - 2] : null;
+  const latestReading = glucoseData.length > 0 ? glucoseData[glucoseData.length - 1] : null;
+  const previousReading = glucoseData.length > 1 ? glucoseData[glucoseData.length - 2] : null;
+
+  // Combined loading state
+  const isLoading = isLoadingUser || isLoadingGlucose;
 
   // Loading skeleton
   if (isLoading) {
@@ -60,6 +75,12 @@ const Index = () => {
         </div>
       </div>
     );
+  }
+  
+  // Error state for glucose data
+  if (glucoseError) {
+    // We could show a more specific error message, but for now let's keep it simple
+    console.error("Error fetching glucose data:", glucoseError);
   }
   
   return (
@@ -108,7 +129,7 @@ const Index = () => {
       )}
       
       <div className="mt-6">
-        {data.length > 0 && <GlucoseChart data={data} />}
+        {glucoseData.length > 0 && <GlucoseChart data={glucoseData} />}
       </div>
       
       {stats && (

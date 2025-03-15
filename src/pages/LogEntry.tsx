@@ -1,24 +1,53 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { LogEntry, sampleLogEntries } from '@/utils/dummyData';
 import LogEntryForm from '@/components/LogEntryForm';
 import { Utensils, Pill, Dumbbell, StickyNote, Clock, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { v4 as uuidv4 } from 'uuid';
+import { toast } from '@/hooks/use-toast';
+import { LogEntry, getLogEntries, addLogEntry, deleteLogEntry } from '@/services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const LogEntryPage = () => {
-  const [entries, setEntries] = useState<LogEntry[]>(sampleLogEntries);
+  // Use React Query to fetch and cache log entries
+  const queryClient = useQueryClient();
+  
+  // Fetch log entries
+  const { 
+    data: entries = [], 
+    isLoading,
+    error 
+  } = useQuery({
+    queryKey: ['logEntries'],
+    queryFn: getLogEntries
+  });
+  
+  // Add new log entry mutation
+  const addEntryMutation = useMutation({
+    mutationFn: addLogEntry,
+    onSuccess: () => {
+      // Invalidate and refetch the log entries query
+      queryClient.invalidateQueries({ queryKey: ['logEntries'] });
+      
+      toast({
+        title: "Success",
+        description: "Entry added successfully!"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to add entry"
+      });
+    }
+  });
   
   const handleAddEntry = (newEntry: Omit<LogEntry, 'id'>) => {
-    const entryWithId = {
-      ...newEntry,
-      id: uuidv4()
-    };
-    
-    setEntries(prev => [entryWithId, ...prev]);
+    // Call the mutation to add the entry
+    addEntryMutation.mutate(newEntry);
   };
   
   // Icon mapping for entry types
@@ -36,6 +65,39 @@ const LogEntryPage = () => {
     exercise: 'bg-purple-100 text-purple-700 border-purple-200',
     note: 'bg-amber-100 text-amber-700 border-amber-200'
   };
+  
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="app-container">
+        <div className="animate-pulse space-y-6">
+          <div className="h-14 bg-gray-200 rounded-xl w-2/3 mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="h-56 bg-gray-200 rounded-xl"></div>
+            <div className="h-56 bg-gray-200 rounded-xl"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Error state
+  if (error) {
+    return (
+      <div className="app-container">
+        <h1 className="heading-lg mb-1">Error Loading Log Entries</h1>
+        <p className="text-red-500">
+          {(error as Error).message || "An unexpected error occurred"}
+        </p>
+        <button 
+          className="mt-4 px-4 py-2 bg-primary text-white rounded-md"
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['logEntries'] })}
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
   
   return (
     <motion.div 

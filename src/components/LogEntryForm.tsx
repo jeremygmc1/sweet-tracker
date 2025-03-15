@@ -7,13 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/hooks/use-toast';
-import { LogEntry } from '@/utils/dummyData';
+import { LogEntry } from '@/services/api';
 
 interface LogEntryFormProps {
   onSubmit: (entry: Omit<LogEntry, 'id'>) => void;
+  isSubmitting?: boolean;
 }
 
-const LogEntryForm: React.FC<LogEntryFormProps> = ({ onSubmit }) => {
+const LogEntryForm: React.FC<LogEntryFormProps> = ({ onSubmit, isSubmitting = false }) => {
   const [entryType, setEntryType] = useState<'food' | 'medication' | 'exercise' | 'note'>('food');
   const [value, setValue] = useState('');
   const [glucoseReading, setGlucoseReading] = useState('');
@@ -39,14 +40,12 @@ const LogEntryForm: React.FC<LogEntryFormProps> = ({ onSubmit }) => {
     
     onSubmit(newEntry);
     
-    // Reset form
-    setValue('');
-    setGlucoseReading('');
-    
-    toast({
-      title: "Success",
-      description: "Entry added successfully!"
-    });
+    // Reset form (only if submission is successful)
+    // This will be handled by the onSuccess callback in the mutation
+    if (!isSubmitting) {
+      setValue('');
+      setGlucoseReading('');
+    }
   };
   
   return (
@@ -99,6 +98,7 @@ const LogEntryForm: React.FC<LogEntryFormProps> = ({ onSubmit }) => {
               onChange={(e) => setValue(e.target.value)}
               placeholder="Enter your note..."
               className="min-h-[100px]"
+              disabled={isSubmitting}
             />
           ) : (
             <Input
@@ -110,6 +110,7 @@ const LogEntryForm: React.FC<LogEntryFormProps> = ({ onSubmit }) => {
                 entryType === 'medication' ? 'What medication did you take?' :
                 'What exercise did you do?'
               }
+              disabled={isSubmitting}
             />
           )}
         </div>
@@ -124,14 +125,16 @@ const LogEntryForm: React.FC<LogEntryFormProps> = ({ onSubmit }) => {
             value={glucoseReading}
             onChange={(e) => setGlucoseReading(e.target.value)}
             placeholder="mg/dL"
+            disabled={isSubmitting}
           />
         </div>
         
         <Button 
           type="submit" 
           className="w-full"
+          disabled={isSubmitting}
         >
-          Save Entry
+          {isSubmitting ? 'Saving...' : 'Save Entry'}
         </Button>
       </div>
     </motion.form>
