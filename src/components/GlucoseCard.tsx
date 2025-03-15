@@ -12,7 +12,7 @@ interface GlucoseCardProps {
 
 const GlucoseCard: React.FC<GlucoseCardProps> = ({ latestReading, previousReading }) => {
   const difference = latestReading.value - previousReading.value;
-  const arrowIcon = difference < -5 ? ArrowDown : difference > 5 ? ArrowUp : ArrowRight;
+  const ArrowIcon = difference < -5 ? ArrowDown : difference > 5 ? ArrowUp : ArrowRight;
   const arrowColor = 
     difference < -5 ? 'text-blue-500' : 
     difference > 5 ? 'text-rose-500' : 
@@ -79,7 +79,7 @@ const GlucoseCard: React.FC<GlucoseCardProps> = ({ latestReading, previousReadin
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.3 }}
         >
-          <arrowIcon className="h-4 w-4 mr-1" />
+          <ArrowIcon className="h-4 w-4 mr-1" />
           <span className="text-sm font-medium">
             {Math.abs(difference)} mg/dL
           </span>

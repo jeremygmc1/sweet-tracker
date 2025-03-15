@@ -143,10 +143,7 @@ const GlucoseChart: React.FC<GlucoseChartProps> = ({ data }) => {
               r: 6, 
               strokeWidth: 2, 
               stroke: '#FFFFFF',
-              fill: ({status}) => 
-                status === 'low' ? '#FF6B6B' : 
-                status === 'high' ? '#F6AD55' : 
-                '#48BB78'
+              fill: '#3182CE'
             }}
           />
         </AreaChart>

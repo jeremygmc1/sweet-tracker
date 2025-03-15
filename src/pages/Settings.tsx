@@ -9,15 +9,16 @@ import {
   Shield, 
   HelpCircle,
   ChevronRight,
-  Toggle,
+  ToggleLeft,
   Share,
   Download,
-  Trash2
+  Trash2,
+  Info
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/hooks/use-toast';
 import { userData } from '@/utils/dummyData';
 
 const Settings = () => {
@@ -26,7 +27,10 @@ const Settings = () => {
   const [darkMode, setDarkMode] = useState(false);
   
   const handleReset = () => {
-    toast.info("This would reset your data in a real app");
+    toast({
+      title: "Info",
+      description: "This would reset your data in a real app"
+    });
   };
   
   const settingsGroups = [
@@ -69,7 +73,7 @@ const Settings = () => {
         },
         {
           name: "Dark Mode",
-          icon: <Toggle className="h-4 w-4" />,
+          icon: <ToggleLeft className="h-4 w-4" />,
           action: (
             <Switch 
               checked={darkMode}
