@@ -22,7 +22,11 @@ const LogEntryForm: React.FC<LogEntryFormProps> = ({ onSubmit }) => {
     e.preventDefault();
     
     if (!value.trim()) {
-      toast.error('Please enter a value for the log entry');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a value for the log entry"
+      });
       return;
     }
     
@@ -39,7 +43,10 @@ const LogEntryForm: React.FC<LogEntryFormProps> = ({ onSubmit }) => {
     setValue('');
     setGlucoseReading('');
     
-    toast.success('Entry added successfully!');
+    toast({
+      title: "Success",
+      description: "Entry added successfully!"
+    });
   };
   
   return (
