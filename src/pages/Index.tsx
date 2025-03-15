@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -31,10 +32,12 @@ const Index = () => {
   } = useQuery({
     queryKey: ['userProfile'],
     queryFn: getUserProfile,
-    // Handle errors gracefully
-    onError: () => {
-      // Fallback to default user data if API call fails
-      return { name: "Guest" };
+    // Modern way to handle errors in React Query v5+
+    meta: {
+      onError: () => {
+        // Fallback to default user data if API call fails
+        return { name: "Guest" };
+      }
     }
   });
   
