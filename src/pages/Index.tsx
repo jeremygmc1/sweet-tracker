@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Activity, 
@@ -13,6 +13,7 @@ import {
 import GlucoseChart from '@/components/GlucoseChart';
 import GlucoseCard from '@/components/GlucoseCard';
 import StatsCard from '@/components/StatsCard';
+import DataSourceToggle from '@/components/DataSourceToggle';
 import { Link } from 'react-router-dom';
 import { 
   GlucoseReading,
@@ -20,48 +21,87 @@ import {
   calculateStats,
   getUserProfile
 } from '@/services/api';
+import { 
+  generateDummyData, 
+  calculateStats as calculateDummyStats,
+  userData as dummyUserData
+} from '@/utils/dummyData';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { toast } from 'sonner';
 
 const Index = () => {
-  // Use React Query to fetch and cache data
+  // State to manage data source (API or dummy data)
+  const [useApi, setUseApi] = useLocalStorage('use-api', false);
+  
+  // Use React Query for API data when useApi is true
   const { 
-    data: userData = { name: "Guest" },
-    isLoading: isLoadingUser 
+    data: apiUserData,
+    isLoading: isLoadingUser,
+    error: userError 
   } = useQuery({
     queryKey: ['userProfile'],
     queryFn: getUserProfile,
-    // Modern way to handle errors in React Query v5+
+    enabled: useApi, // Only fetch when useApi is true
     meta: {
-      onError: () => {
-        // Fallback to default user data if API call fails
-        return { name: "Guest" };
+      onError: (error) => {
+        toast.error("Failed to load user profile");
+        console.error("Error fetching user profile:", error);
       }
     }
   });
   
-  // Fetch glucose readings for the past 24 hours
+  // Fetch glucose readings for the past 24 hours from API when useApi is true
   const { 
-    data: glucoseData = [],
+    data: apiGlucoseData,
     isLoading: isLoadingGlucose,
     error: glucoseError
   } = useQuery({
     queryKey: ['glucoseReadings', 1], // 1 day of data
     queryFn: () => getGlucoseReadings(1),
-    // Refresh data periodically (every 5 minutes)
-    refetchInterval: 5 * 60 * 1000
+    enabled: useApi, // Only fetch when useApi is true
+    refetchInterval: useApi ? 5 * 60 * 1000 : false, // Only refetch when useApi is true
+    meta: {
+      onError: (error) => {
+        toast.error("Failed to load glucose readings");
+        console.error("Error fetching glucose readings:", error);
+      }
+    }
   });
+
+  // Generate dummy data when not using API
+  const [dummyGlucoseData, setDummyGlucoseData] = useState<GlucoseReading[]>([]);
   
-  // Calculate stats based on the glucose data
-  const stats = glucoseData.length > 0 ? calculateStats(glucoseData) : null;
+  useEffect(() => {
+    if (!useApi) {
+      // Generate dummy data when not using API
+      setDummyGlucoseData(generateDummyData(1)); // 1 day of data
+    }
+  }, [useApi]);
+  
+  // Handle toggle between API and dummy data
+  const handleDataSourceToggle = (value: boolean) => {
+    setUseApi(value);
+    toast.success(`Switched to ${value ? 'API data' : 'dummy data'}`);
+  };
+  
+  // Determine which data to use based on toggle state
+  const userData = useApi ? apiUserData || { name: "Guest" } : dummyUserData;
+  const glucoseData = useApi ? apiGlucoseData || [] : dummyGlucoseData;
+  
+  // Calculate stats based on the selected data source
+  const stats = glucoseData.length > 0 ? 
+    (useApi ? calculateStats(glucoseData) : calculateDummyStats(glucoseData)) 
+    : null;
   
   // Get the latest and previous readings
   const latestReading = glucoseData.length > 0 ? glucoseData[glucoseData.length - 1] : null;
   const previousReading = glucoseData.length > 1 ? glucoseData[glucoseData.length - 2] : null;
 
-  // Combined loading state
-  const isLoading = isLoadingUser || isLoadingGlucose;
+  // Combined loading state (only applicable when API is enabled)
+  const isLoading = useApi && (isLoadingUser || isLoadingGlucose);
 
   // Loading skeleton
   if (isLoading) {
@@ -80,10 +120,12 @@ const Index = () => {
     );
   }
   
-  // Error state for glucose data
-  if (glucoseError) {
-    // We could show a more specific error message, but for now let's keep it simple
-    console.error("Error fetching glucose data:", glucoseError);
+  // Error state (only show when API is enabled and there's an error)
+  if (useApi && (userError || glucoseError)) {
+    console.error("Error fetching data:", userError || glucoseError);
+    toast.error("There was an error loading the data. Switching to dummy data.");
+    // Auto-switch to dummy data on error
+    if (useApi) setUseApi(false);
   }
   
   return (
@@ -98,7 +140,7 @@ const Index = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex justify-between items-center mb-6"
+        className="flex justify-between items-center mb-2"
       >
         <div>
           <h1 className="heading-lg mb-1">Hello, {userData.name}</h1>
@@ -123,6 +165,8 @@ const Index = () => {
           </motion.div>
         </div>
       </motion.div>
+      
+      <DataSourceToggle useApi={useApi} onToggle={handleDataSourceToggle} />
       
       {latestReading && previousReading && (
         <GlucoseCard 
